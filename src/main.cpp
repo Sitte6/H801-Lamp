@@ -1,130 +1,164 @@
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
-#include <ESP8266HTTPClient.h>
-#include <ESP8266httpUpdate.h>
 
-#include <FS.h>
-#include <LittleFS.h>
+#include <httpupdate.h>
+#include <MultiLED.h>
+#include <Config.h>
+#include <Webserver.h>
+#include <MultiPurposeButton.h>
+
+#define RED 15
+#define BLUE 13
+#define GREEN 12
 
 
-#include <CertStoreBearSSL.h>
-BearSSL::CertStore certStore;
 
-BearSSL::WiFiClientSecure client;
+MultiLED led;
+configData cfg;
+MultiPurposeButton button(2);
 
-// Set time via NTP, as required for x.509 validation
-void setClock() {
-  configTime(1, 0, "pool.ntp.org", "time.nist.gov");  // UTC
+bool ConnectToWiFi(char ssid[], char pwd[]);
+void WiFiStarter();
+IRAM_ATTR void left();
+IRAM_ATTR void right();
+void p();
+void lp();
 
-  Serial.print(F("Waiting for NTP time sync: "));
-  time_t now = time(nullptr);
-  while (now < 8 * 3600 * 2) {
-    yield();
-    delay(500);
-    Serial.print(F("."));
-    now = time(nullptr);
-  }
-
-  Serial.println(F(""));
-  struct tm timeinfo;
-  gmtime_r(&now, &timeinfo);
-  Serial.print(F("Current time: "));
-  Serial.print(asctime(&timeinfo));
-}
 
 void setup() {
-
-  for (uint8_t t = 4; t > 0; t--) {
-    Serial.printf("[SETUP] WAIT %d...\n", t);
-    Serial.flush();
-    delay(1000);
-  }
-
-  LittleFS.begin();
-  pinMode(2, INPUT_PULLUP);
-  pinMode(4, OUTPUT);
   Serial.begin(115200);
+
+  pinMode(2, INPUT_PULLUP);
+  pinMode(5, INPUT_PULLUP);
+  pinMode(0, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(5), left, FALLING);
+  attachInterrupt(digitalPinToInterrupt(0), right, FALLING);
+
+  button.RegisterCallbacks(p,lp);
+
+  led.AddChannel(0, new LedChannel(RED, (LedColor)red, false));
+  led.AddChannel(1, new LedChannel(GREEN, (LedColor)green, false));
+  led.AddChannel(2, new LedChannel(BLUE, (LedColor)blue, false));
+
+  
   Serial.println("Started");
-  WiFi.mode(WIFI_STA);
-  WiFi.begin("Kaernter Aussenposten", "EcExLvwd");
-  while (WiFi.waitForConnectResult() != WL_CONNECTED) {
-    Serial.println("Connection Failed! Rebooting...");
-    delay(5000);
-    ESP.restart();
-  }
+  //WiFi.mode(WIFI_STA);
+  //WiFi.begin("Kaernter Aussenposten", "EcExLvwd");
+  //while (WiFi.waitForConnectResult() != WL_CONNECTED) {
+  //  Serial.println("Connection Failed! Rebooting...");
+  //  delay(5000);
+  //  ESP.restart();
+  //}
+  WiFiStarter();
+
   Serial.println("WiFI Connected");
 
+  led.StartRandomColorFadeFromTheme(ColorThemes::Rainbow, 3000, logistic, true);
 
-int numCerts = certStore.initCertStore(LittleFS, PSTR("/certs.idx"), PSTR("/certs.ar"));
-  Serial.print(F("Number of CA certs read: "));
-  Serial.println(numCerts);
-  if (numCerts == 0) {
-    Serial.println(F("No certs found. Did you run certs-from-mozill.py and upload the LittleFS directory before running?"));
-    return;  // Can't connect to anything w/o certs!
-  }
-  setClock();
-
-  bool mfln = client.probeMaxFragmentLength("https://raw.githubusercontent.com", 443, 1024);  // server must be the same as in ESPhttpUpdate.update()
-    Serial.printf("MFLN supported: %s\n", mfln ? "yes" : "no");
-    if (mfln) { client.setBufferSizes(1024, 1024); }
-    client.setCertStore(&certStore);
 
 }
 
-void update_started() {
-  Serial.println("CALLBACK:  HTTP update process started");
-}
 
-void update_finished() {
-  Serial.println("CALLBACK:  HTTP update process finished");
-}
-
-void update_progress(int cur, int total) {
-  Serial.printf("CALLBACK:  HTTP update process at %d of %d bytes...\n", cur, total);
-}
-
-void update_error(int err) {
-  Serial.printf("CALLBACK:  HTTP update fatal error code %d\n", err);
-}
 
 void loop() {
-  if(digitalRead(2)==LOW)
+  /*if(digitalRead(2)==LOW)
   {
     while(digitalRead(2)==LOW)
     {
       delay(50);
     }
     Serial.println("Update...");
-
-    ESPhttpUpdate.setLedPin(LED_BUILTIN, LOW);
-
-    // Add optional callback notifiers
-    ESPhttpUpdate.onStart(update_started);
-    ESPhttpUpdate.onEnd(update_finished);
-    ESPhttpUpdate.onProgress(update_progress);
-    ESPhttpUpdate.onError(update_error);
+    updateFromGitHub();
     
-    t_httpUpdate_return ret = ESPhttpUpdate.update(client, "https://raw.githubusercontent.com/Sitte6/H801-Lamp/main/firmware/firmware.bin");
-    // Or:
-    //t_httpUpdate_return ret = ESPhttpUpdate.update(client, "server", 80, "file.bin");
+  }*/
+  led.handle();
+  button.handle();
+  delay(10);
+}
 
-    switch (ret) {
-      case HTTP_UPDATE_FAILED:
-        Serial.printf("HTTP_UPDATE_FAILD Error (%d): %s\n", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
-        break;
 
-      case HTTP_UPDATE_NO_UPDATES:
-        Serial.println("HTTP_UPDATE_NO_UPDATES");
-        break;
+void WiFiStarter()
+  {
 
-      case HTTP_UPDATE_OK:
-        Serial.println("HTTP_UPDATE_OK");
-        break;
+    loadConfig(&cfg);
+
+    unsigned int checksum = CalculateChecksum(cfg);
+    if (checksum == cfg.checksum && checksum != 0)
+    {
+      if (ConnectToWiFi(cfg.SSID, cfg.password))
+      {
+        return;
+      }
+      else
+      {
+        delay(10000);
+        while (true)
+        {
+          if (ConnectToWiFi(cfg.SSID, cfg.password))
+          {
+            return;
+          }
+          else
+          {
+            WiFi.mode( WIFI_OFF );
+            WiFi.forceSleepBegin();
+            delay(1800000);
+          }
+        }
+      }
+    }
+    else
+    {
+      WebserverSetup();
+      while (true)
+      {
+        handleClients();
+      }
     }
   }
-  /*digitalWrite(4, HIGH);
-  delay(500);
-  digitalWrite(4, LOW);
-  delay(500);*/
 
+  bool ConnectToWiFi(char ssid[], char pwd[])
+  {
+    Serial.println("Connecting to Wifi...");
+    WiFi.softAPdisconnect (true);
+    WiFi.mode(WIFI_STA);
+    WiFi.setAutoReconnect(true);
+    WiFi.persistent(true);
+    WiFi.begin(ssid, pwd);
+    if (WiFi.waitForConnectResult() != WL_CONNECTED) {
+      Serial.println("Connection to Wifi failed.");
+      return false;
+    }
+    else
+    {
+      Serial.println("Connection to Wifi succesfull.");
+      return true;
+    }
+  }
+
+  IRAM_ATTR void left()
+{
+  Serial.println("left");
+  led.SetRed();
+}
+IRAM_ATTR void right()
+{
+  Serial.println("right");
+  led.SetGreen();
+}
+
+void p()
+{
+  led.SetRed();
+}
+
+
+void lp()
+{
+  if(millis()<15000)
+  {
+    led.SetBlue();
+    updateFromGitHub();
+  }
+  
 }
