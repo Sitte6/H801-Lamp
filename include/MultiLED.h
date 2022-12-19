@@ -103,6 +103,7 @@ public:
     LedColor color;
     bool useInverseLogic;
     float correctionFactor;
+    float brightness = 1;
     uint8_t currentValue;
     LedChannel(uint8_t ledPin, LedColor ledColor, bool inversedLogic = false, uint8_t negativeLightCorrection = 0);
 
@@ -269,6 +270,8 @@ public:
 
     void Pulse(RGB value, uint16_t duration, bool restoreOldValue = true);
 
+    void SetBrightness(float brightness);
+
     void SetRed();
 
     void SetGreen();
@@ -284,6 +287,8 @@ public:
     void SetColorTemperature(uint16_t kelvin);
 
     void handle();
+
+    void updatestate();
 
     //returns true if FadeStep is complete
     bool HandleValueToValueFade(FadeStep *step);

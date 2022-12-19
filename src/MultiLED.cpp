@@ -24,7 +24,7 @@ void LedChannel::SetOff()
 
 void LedChannel::WriteToLED(uint16_t value)
 {
-    uint16_t scaledValue = value * this->correctionFactor;
+    uint16_t scaledValue = value * this->correctionFactor * this->brightness;
     analogWrite(pin, scaledValue);
 }
 
@@ -429,6 +429,19 @@ void MultiLED::Pulse(RGB value, uint16_t duration, bool restoreOldValue)
     }
 }
 
+void MultiLED::SetBrightness(float brightness)
+{
+    if(brightness > 1 || brightness < 0)
+        return;
+    for (int i = 0; i < MAX_LEDS; i++)
+    {
+        if (channels[i])
+        {
+            channels[i]->brightness = brightness;
+        }
+    }
+}
+
 void MultiLED::SetRed()
 {
     SetColorLed((LedColor)red);
@@ -589,6 +602,14 @@ void MultiLED::handle()
     }
     yield();
     //HandleValueToValueFade();
+}
+
+void MultiLED::updatestate()
+{
+    Mode tempmode = mode;
+    RGB currentValue = GetCurrentValue();
+    SetRGBValue(currentValue);
+    mode = tempmode;
 }
 
 //returns true if FadeStep is complete

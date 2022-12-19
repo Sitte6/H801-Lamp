@@ -220,6 +220,7 @@ struct ColorThemes_
     static RGB Water[];
     static RGB Fire[];
     static RGB Rainbow[];
+    static RGB ColorCircle[];
 };
 
 template <class ColorThemes>
@@ -274,6 +275,23 @@ RGB ColorThemes_<ColorThemes>::Rainbow[] =
         Color::DeepSkyBlue,
         Color::DodgerBlue,
         Color::Purple
+};
+
+template <class ColorThemes>
+RGB ColorThemes_<ColorThemes>::ColorCircle[] =
+    {
+        Color::Red,
+        Color::Orange,
+        Color::Yellow,
+        Color::GreenYellow,
+        Color::Green,
+        Color::SpringGreen,
+        Color::Cyan,
+        Color::Aquamarine,
+        Color::Blue,
+        Color::Violet,
+        Color::Magenta,
+        Color::VioletRed
 };
 
 using ColorThemes = ColorThemes_<void>;

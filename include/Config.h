@@ -15,6 +15,13 @@
     int valid;                          // 0=no configuration, 1=valid configuration
     char SSID[32];                      // SSID of WiFi
     char password[32];                  // Password of WiFi
+
+    int mode;                           // Current Lamp mode: White / RGB / Fade
+    int colortemperature;               // Current color temperature
+    float brightness;                   // Current brightness: 0.1 - 1
+    int color;                          // Current RGB color
+
+    bool configchanged;                 // States if config has been changed
   };
 
   typedef struct configData configData;
