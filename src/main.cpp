@@ -6,19 +6,24 @@
 #include <Config.h>
 #include <Webserver.h>
 #include <MultiPurposeButton.h>
-//#include <SoftwareSerial.h>
+#include <SoftwareSerial.h>
 
 #define RED 15
-#define BLUE 13
-#define GREEN 12
-#define BUTTON 2
-#define INKLEFT 5
-#define INKRIGHT 0
+#define BLUE 12
+#define GREEN 13
+#define WHITELED 14
+//#define BUTTON 2
+//#define INKLEFT 5
+//#define INKRIGHT 0
 
+//H801
+#define BUTTON 0
+#define INKLEFT 2
+#define INKRIGHT 3
 
 #define FLASH_SAVE_INTERVAL 60000
 
-//SoftwareSerial espserial(1, 0); // RX | TX
+SoftwareSerial espserial(1, 0); // RX | TX
 
 #define WHITE 0
 #define RGB 1
@@ -27,7 +32,7 @@
 
 MultiLED led;
 configData cfg;
-MultiPurposeButton button(2);
+MultiPurposeButton button(BUTTON);
 
 bool ConnectToWiFi(char ssid[], char pwd[]);
 void WiFiStarter();
@@ -50,9 +55,12 @@ int bootmenu = 0;
 unsigned long lastflashsave = 0;
 
 void setup() {
+
   led.AddChannel(0, new LedChannel(RED, (LedColor)red, false));
   led.AddChannel(1, new LedChannel(GREEN, (LedColor)green, false));
   led.AddChannel(2, new LedChannel(BLUE, (LedColor)blue, false));
+
+
 
   loadConfig(&cfg);
 
@@ -62,32 +70,30 @@ void setup() {
     SetLEDToMode();
   }  
 
-  Serial.begin(115200);
+  espserial.begin(57600);
 
 
-  pinMode(0, INPUT_PULLUP);
-  pinMode(5, INPUT_PULLUP);
-  pinMode(2, INPUT_PULLUP);
-  //attachInterrupt(digitalPinToInterrupt(5), left, FALLING);
-  //attachInterrupt(digitalPinToInterrupt(2), right, FALLING);
+  pinMode(INKRIGHT, INPUT_PULLUP);
+  pinMode(INKLEFT, INPUT_PULLUP);
+  pinMode(BUTTON, INPUT_PULLUP);
+  pinMode(WHITELED, OUTPUT);
+  digitalWrite(WHITELED, LOW);
 
   button.RegisterCallbacks(p,lp);
-
   
-  Serial.println("Started");
+  
+  espserial.println("Started");
   //WiFi.mode(WIFI_STA);
   //WiFi.begin("Kaernter Aussenposten", "EcExLvwd");
   //while (WiFi.waitForConnectResult() != WL_CONNECTED) {
-  //  Serial.println("Connection Failed! Rebooting...");
+  //  espserial.println("Connection Failed! Rebooting...");
   //  delay(5000);
   //  ESP.restart();
   //}
   WiFiStarter();
 
-  Serial.println("WiFI Connected");
-
-
-
+  espserial.println("WiFI Connected");
+  
 }
 
 
@@ -99,7 +105,7 @@ void loop() {
   int B = digitalRead(INKRIGHT);
   if(A==LOW && B==HIGH && inclock)
   {
-    Serial.println("left");
+    espserial.println("left");
     if(dim)
     {
       cfg.brightness -= 0.1;
@@ -108,6 +114,7 @@ void loop() {
       {
         cfg.brightness = 0.1;
       }
+      SetLEDToMode();
     }
     else if(bootmenu)
     {
@@ -116,12 +123,13 @@ void loop() {
     }
     else if(cfg.mode == WHITE)
     {
-      cfg.colortemperature -= 1000;
+      cfg.colortemperature -= 500;
       cfg.configchanged = true;
       if(cfg.colortemperature < 1000)
       {
         cfg.colortemperature = 1000;
       }
+      SetLEDToMode();
     }
     else if(cfg.mode == RGB)
     {
@@ -131,13 +139,14 @@ void loop() {
       {
         cfg.color = 11;
       }
+      SetLEDToMode();
     }
-    SetLEDToMode();
+    
     inclock = 0;
   }
   else if(A==HIGH && B == LOW && inclock)
   {
-    Serial.println("right");
+    espserial.println("right");
     if(dim)
     {
       cfg.brightness += 0.1;
@@ -146,7 +155,7 @@ void loop() {
       {
         cfg.brightness = 1;
       }
-      
+      SetLEDToMode();
     }
     else if(bootmenu)
     {
@@ -155,12 +164,13 @@ void loop() {
     }
     else if(cfg.mode == WHITE)
     {
-      cfg.colortemperature += 1000;
+      cfg.colortemperature += 500;
       cfg.configchanged = true;
       if(cfg.colortemperature > 10000)
       {
         cfg.colortemperature = 10000;
       }
+      SetLEDToMode();
     }
     else if(cfg.mode == RGB)
     {
@@ -170,8 +180,8 @@ void loop() {
       {
         cfg.color = 0;
       }
+      SetLEDToMode();
     }
-    SetLEDToMode();
     inclock = 0;
   }
   else if(A==HIGH && B==HIGH)
@@ -232,19 +242,19 @@ void WiFiStarter()
 
   bool ConnectToWiFi(char ssid[], char pwd[])
   {
-    Serial.println("Connecting to Wifi...");
+    espserial.println("Connecting to Wifi...");
     WiFi.softAPdisconnect (true);
     WiFi.mode(WIFI_STA);
     WiFi.setAutoReconnect(true);
     WiFi.persistent(true);
     WiFi.begin(ssid, pwd);
     if (WiFi.waitForConnectResult() != WL_CONNECTED) {
-      Serial.println("Connection to Wifi failed.");
+      espserial.println("Connection to Wifi failed.");
       return false;
     }
     else
     {
-      Serial.println("Connection to Wifi succesfull.");
+      espserial.println("Connection to Wifi succesfull.");
       return true;
     }
   }
@@ -253,25 +263,25 @@ void WiFiStarter()
 {
   if(digitalRead(0) == LOW)
   {
-    Serial.println("left");
+    espserial.println("left");
     led.SetBlue();
   }
   else
   {
-    Serial.println("right");
+    espserial.println("right");
     led.SetGreen();
   }
   
 }
 //IRAM_ATTR void right()
 //{
-//  Serial.println("right");
+//  espserial.println("right");
 //  led.SetGreen();
 //}
 
 void p()
 {
-  Serial.println("Press");
+  espserial.println("Press");
   if(dim)
   {
     led.Pulse(Color::Blue, 250);
@@ -283,14 +293,16 @@ void p()
     if(bootmenu == 1)
     {
       led.Pulse(Color::Green, 1000);
-      Serial.println("Firmware-Update from Github");
+      led.SetOff();
+      espserial.println("Firmware-Update from Github");
       updateFromGitHub();
     }
     if(bootmenu == 2)
     {
       led.Pulse(Color::Red, 1000);
-      Serial.println("Factory-Reset");
+      espserial.println("Factory-Reset");
       eraseConfig(cfg);
+      loadConfig(&cfg);
       cfg.mode = 0;
       cfg.brightness = 1;
       cfg.color = 0;
@@ -306,25 +318,25 @@ void p()
     cfg.mode = 0;
   }
   cfg.configchanged = true;
-  Serial.println(cfg.mode);
+  espserial.println(cfg.mode);
   SetLEDToMode();
 }
 
 
 void lp()
 {
-  if(millis()<5000)
+  if(millis()<8000)
   {
     bootmenu = 1;
-    Serial.println("Boot Menü");
-    led.Pulse(Color::Red, 500);
-    led.Pulse(Color::Red, 500);
-    led.Pulse(Color::Red, 500);
+    espserial.println("Boot Menü");
+    led.Pulse(Color::Red, 500, false);
+    led.Pulse(Color::Red, 500, false);
+    led.Pulse(Color::Red, 500, false);
     led.SetBlue();
   }
   else
   {
-    Serial.println("Long Press");
+    espserial.println("Long Press");
     led.Pulse(Color::Blue, 250);
     dim = 1;
   }
@@ -332,10 +344,10 @@ void lp()
 }
 void SetLEDToMode()
 {
-  Serial.println("test");
-  Serial.println(cfg.brightness);
-  Serial.println(cfg.colortemperature);
-  Serial.println(cfg.color);
+  espserial.println("test");
+  espserial.println(cfg.brightness);
+  espserial.println(cfg.colortemperature);
+  espserial.println(cfg.color);
   led.SetBrightness(cfg.brightness);
   led.updatestate();
   switch (cfg.mode)
@@ -347,7 +359,7 @@ void SetLEDToMode()
     led.FadeToValueAsync(ColorThemes::ColorCircle[cfg.color], 250);
     break;
   case FADE:
-    led.StartRandomColorFadeFromTheme(ColorThemes::Rainbow);
+    led.StartRandomColorFadeFromTheme(ColorThemes::Rainbow,9000);
     break;
 
   default: led.SetBlue();

@@ -67,7 +67,7 @@ void updateFromGitHub()
     if (mfln) { client.setBufferSizes(1024, 1024); }
     client.setCertStore(&certStore);
 
-    ESPhttpUpdate.setLedPin(LED_BUILTIN, LOW);
+    ESPhttpUpdate.setLedPin(15, HIGH);
 
     // Add optional callback notifiers
     ESPhttpUpdate.onStart(update_started);

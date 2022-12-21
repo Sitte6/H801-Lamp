@@ -73,6 +73,8 @@ void WebserverSetup() {
   WiFi.softAP("ESP-SETUP");
   WiFi.mode(WIFI_AP);
 
+  loadConfig(&config);
+
   server.on("/", HTTP_GET, handleRoot);        // Call the 'handleRoot' function when a client requests URI "/"
   server.on("/wificredentials", HTTP_POST, handleCredentials); // Call the 'handleLogin' function when a POST request is made to URI "/wificredentials"
   server.on("/generate_204", handleRoot);
