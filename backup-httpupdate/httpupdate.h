@@ -2,6 +2,7 @@
 #define H_UPDATE
 
 #include <Arduino.h>
+#include <CertStoreBearSSL.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266httpUpdate.h>
 #include <FS.h>

@@ -18,12 +18,12 @@
 
 //H801
 #define BUTTON 0
-#define INKLEFT 2
+#define INKLEFT 4
 #define INKRIGHT 3
 
 #define FLASH_SAVE_INTERVAL 60000
 
-SoftwareSerial espserial(1, 0); // RX | TX
+SoftwareSerial espserial(1, 2); // RX | TX
 
 #define WHITE 0
 #define RGB 1
