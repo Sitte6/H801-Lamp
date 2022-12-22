@@ -18,12 +18,12 @@
 
 //H801
 #define BUTTON 0
-#define INKLEFT 4
+#define INKLEFT 2
 #define INKRIGHT 3
 
 #define FLASH_SAVE_INTERVAL 60000
 
-SoftwareSerial espserial(1, 2); // RX | TX
+SoftwareSerial espserial(1, 0); // RX | TX =2
 
 #define WHITE 0
 #define RGB 1
@@ -67,7 +67,23 @@ void setup() {
   unsigned int checksum = CalculateChecksum(cfg);
   if (checksum == cfg.checksum && checksum != 0)
   {
-    SetLEDToMode();
+    led.SetBrightness(cfg.brightness);
+    led.updatestate();
+    switch (cfg.mode)
+    {
+    case WHITE:
+      led.FadeToValue(KelvinRGB::KelvinToRGB(cfg.colortemperature), 500);
+      break;
+    case RGB:
+      led.FadeToValue(ColorThemes::ColorCircle[cfg.color], 500);
+      break;
+    case FADE:
+      led.StartRandomColorFadeFromTheme(ColorThemes::Rainbow,9000);
+      break;
+
+    default: led.SetBlue();
+      break;
+    }
   }  
 
   espserial.begin(57600);
