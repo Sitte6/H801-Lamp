@@ -47,6 +47,7 @@ int mode = WHITE;
 int colortemperature = 5000;
 float brightness = 1;
 int color = 0;
+int fadespeed = 9000;
 
 bool dim = 0;
 int bootmenu = 0;
@@ -57,8 +58,8 @@ unsigned long lastflashsave = 0;
 void setup() {
 
   led.AddChannel(0, new LedChannel(RED, (LedColor)red, false));
-  led.AddChannel(1, new LedChannel(GREEN, (LedColor)green, false));
-  led.AddChannel(2, new LedChannel(BLUE, (LedColor)blue, false));
+  led.AddChannel(1, new LedChannel(GREEN, (LedColor)green, false, 100));
+  led.AddChannel(2, new LedChannel(BLUE, (LedColor)blue, false, 100));
 
 
   pinMode(WHITELED, OUTPUT);
@@ -86,7 +87,7 @@ void setup() {
       digitalWrite(WHITELED, LOW);
       break;
     case FADE:
-      led.StartRandomColorFadeFromTheme(ColorThemes::Rainbow,9000);
+      led.StartRandomColorFadeFromTheme(ColorThemes::Rainbow, cfg.fadespeed);
       digitalWrite(WHITELED, LOW);
       break;
 
@@ -125,8 +126,8 @@ void setup() {
 
 void loop() {
   led.handle();
-  //RGB val = led.GetCurrentValue();
-  //espserial.printf("R: %d, G: %d, B: %d \n", val.r, val.g, val.b);
+  RGB val = led.GetCurrentValue();
+  espserial.printf("R: %d, G: %d, B: %d \n", val.r, val.g, val.b);
   button.handle();
   int A = digitalRead(INKLEFT);
   int B = digitalRead(INKRIGHT);
@@ -167,6 +168,16 @@ void loop() {
         cfg.color = 355;
       }
       SetLEDToMode();
+    }
+    else if(cfg.mode == FADE)
+    {
+      cfg.fadespeed -= 1000;
+      cfg.configchanged = true;
+      if(cfg.fadespeed < 1000)
+      {
+        cfg.fadespeed = 1000;
+      }
+      led.ChangeFadeColorDuration(led.fadeSteps, cfg.fadespeed);
     }
     
     inclock = 0;
@@ -209,6 +220,16 @@ void loop() {
       }
       SetLEDToMode();
     }
+    else if(cfg.mode == FADE)
+    {
+      cfg.fadespeed += 1000;
+      cfg.configchanged = true;
+      if(cfg.fadespeed > 60000)
+      {
+        cfg.fadespeed = 60000;
+      }
+      led.ChangeFadeColorDuration(led.fadeSteps, cfg.fadespeed);
+    }
     inclock = 0;
   }
   else if(A==HIGH && B==HIGH)
@@ -225,7 +246,7 @@ void loop() {
     }  
     lastflashsave = millis();
   }
-  yield();
+  delay(10);
 }
 
 
@@ -334,6 +355,7 @@ void p()
       cfg.brightness = 1;
       cfg.color = 0;
       cfg.colortemperature = 4000;
+      cfg.fadespeed = 10000;
       cfg.checksum = 0;
       saveConfig(cfg);
       ESP.reset();

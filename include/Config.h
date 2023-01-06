@@ -20,6 +20,7 @@
     int colortemperature;               // Current color temperature
     float brightness;                   // Current brightness: 0.1 - 1
     int color;                          // Current RGB color
+    int fadespeed;                          // Current Fadespeed (Duration per Color in ms)
 
     bool configchanged;                 // States if config has been changed
   };

@@ -267,6 +267,24 @@ public:
         }
     }
 
+    template <size_t N>
+    void ChangeFadeColorDuration(FadeStep *(&fadelist)[N], uint32_t newDuration)
+    {
+        unsigned short n = (N > MAX_FADESTEPS) ? MAX_FADESTEPS : N;
+        for (uint8_t i = 0; i < n; i++)
+        {
+            if (fadelist[i])
+            {
+                fadelist[i]->fadeDuration = newDuration;
+            }
+            else
+            {
+                break;
+            }
+        }
+        
+    }
+
     void StartSunriseFadeAsync(uint8_t durationInMinutes);
 
     void Pulse(RGB value, uint16_t duration, bool restoreOldValue = true);
