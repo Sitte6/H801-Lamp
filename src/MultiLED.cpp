@@ -265,8 +265,8 @@ uint16_t LedChannel::FadeOn_Func_Linear(uint32_t t, uint32_t period, uint16_t fr
     if (t >= period)
         return toValue; // kFullBrightness;
 
-    uint8_t y0;
-    uint8_t y1;
+    uint16_t y0;
+    uint16_t y1;
     float dy;
     float dx = period;
     float k;
@@ -276,7 +276,7 @@ uint16_t LedChannel::FadeOn_Func_Linear(uint32_t t, uint32_t period, uint16_t fr
     y1 = toValue;
     dy = y1 - y0;
     k = dy / dx;
-    return (uint8_t)(k * t + y0);
+    return (uint16_t)(k * t + y0);
 }
 
 //MultiLed
@@ -782,6 +782,54 @@ void sleep(unsigned long duration)
     }
 }
 
+RGB MultiLED::HSVtoRGB (HSV hsv) {
+  double h = hsv.hue;
+  double s = hsv.saturation/255.0;
+  double v = hsv.value/255.0;
+  double c = v*s;
+  double tmp = h/60.0;
+  double tmp2 = tmp-2*floor(tmp/2);
+  double x = c*(1-abs(tmp2-1));
+  double m = v-c;
+  double r,g,b;
+  int i = floor(tmp);
+
+  switch (i) {
+    case 0:
+      r = c;
+      g = x;
+      b = 0;
+      break;
+    case 1:
+      r = x;
+      g = c;
+      b = 0;
+      break;
+    case 2: 
+      r = 0;
+      g = c;
+      b = x;
+      break;
+    case 3:
+      r = 0;
+      g = x;
+      b = c;
+      break;
+    case 4:
+      r = x;
+      g = 0;
+      b = c;
+      break;
+    case 5:
+      r = c;
+      g = 0;
+      b = x;
+      break;
+  }
+  return (RGB){constrain((int)255*(r+m),0,255), constrain((int)255*(g+m),0,255), constrain((int)255*(b+m),0,255)};
+}
+
+
 constexpr KelvinRGB::ColorTemperature KelvinRGB::WhitePoint;
 constexpr KelvinRGB::ColorTemperature KelvinRGB::KelvinTable[];
 
@@ -840,4 +888,32 @@ RGB KelvinRGB::KelvinToRGB(uint16_t kelvin)
     uint8_t b = (uint8_t)(k * t + y0);
 
     return (RGB){r, g, b};
+}
+
+RGBW KelvinRGB::KelvinToRGBW(uint16_t kelvin, uint16_t whitekelvin) 
+{
+  RGB rgb = KelvinRGB::KelvinToRGB(whitekelvin);
+
+  RGB kelvinWhite = KelvinRGB::KelvinToRGB(whitekelvin);
+
+  // These values are what the 'white' value would need to
+  // be to get the corresponding color value.
+  double whiteValueForRed = rgb.r * 255.0 / kelvinWhite.r;
+  double whiteValueForGreen = rgb.g * 255.0 / kelvinWhite.g;
+  double whiteValueForBlue = rgb.b * 255.0 / kelvinWhite.b;
+
+  // Set the white value to the highest it can be for the given color
+  // (without over saturating any channel - thus the minimum of them).
+  double minWhiteValue = min(whiteValueForRed,
+                             min(whiteValueForGreen,
+                                 whiteValueForBlue));
+  uint8_t Wo = (minWhiteValue <= 255 ? (uint8_t) minWhiteValue : 255);
+
+  // The rest of the channels will just be the original value minus the
+  // contribution by the white channel.
+  uint8_t Ro = (uint8_t)(rgb.r - minWhiteValue * kelvinWhite.r / 255);
+  uint8_t Go = (uint8_t)(rgb.g - minWhiteValue * kelvinWhite.g / 255);
+  uint8_t Bo = (uint8_t)(rgb.b - minWhiteValue * kelvinWhite.b / 255);
+
+  return (RGBW){Ro, Go, Bo, Wo};
 }

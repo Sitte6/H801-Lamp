@@ -89,6 +89,7 @@ public:
             {40000, 161, 183, 255}};
 
     static RGB KelvinToRGB(uint16_t kelvin);
+    static RGBW KelvinToRGBW(uint16_t kelvin, uint16_t whitekelvin);
 };
 
 class LedChannel
@@ -289,6 +290,8 @@ public:
     void handle();
 
     void updatestate();
+
+    static RGB HSVtoRGB (HSV hsv);
 
     //returns true if FadeStep is complete
     bool HandleValueToValueFade(FadeStep *step);

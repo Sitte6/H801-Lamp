@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 
-#define LONG_PRESS_TIME 3000
+#define LONG_PRESS_TIME 1500
 
 typedef std::function<void()> onPress_t; ///Event notifier callback
 

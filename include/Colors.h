@@ -10,6 +10,22 @@ typedef struct
     uint8_t b;
 } RGB;
 
+typedef struct
+{
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+    uint8_t w;
+} RGBW;
+
+typedef struct
+{
+    int hue;
+    int saturation;
+    int value;
+} HSV;
+
+
 //Preset Colors
 //ColorCodes from Website: https://americanpartylights.com/rgb/
 template <class Colors>

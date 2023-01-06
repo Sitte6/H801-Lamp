@@ -26,7 +26,7 @@
 SoftwareSerial espserial(1, 0); // RX | TX =2
 
 #define WHITE 0
-#define RGB 1
+#define RGBHUE 1
 #define FADE 2
 
 
@@ -61,6 +61,12 @@ void setup() {
   led.AddChannel(2, new LedChannel(BLUE, (LedColor)blue, false));
 
 
+  pinMode(WHITELED, OUTPUT);
+ /*digitalWrite(RED, HIGH);
+  digitalWrite(GREEN, HIGH);
+  digitalWrite(BLUE, HIGH);
+  digitalWrite(WHITELED, HIGH);
+  delay(6000);*/
 
   loadConfig(&cfg);
 
@@ -73,12 +79,15 @@ void setup() {
     {
     case WHITE:
       led.FadeToValue(KelvinRGB::KelvinToRGB(cfg.colortemperature), 500);
+      analogWrite(WHITELED, 1023*cfg.brightness);
       break;
-    case RGB:
+    case RGBHUE:
       led.FadeToValue(ColorThemes::ColorCircle[cfg.color], 500);
+      digitalWrite(WHITELED, LOW);
       break;
     case FADE:
       led.StartRandomColorFadeFromTheme(ColorThemes::Rainbow,9000);
+      digitalWrite(WHITELED, LOW);
       break;
 
     default: led.SetBlue();
@@ -116,6 +125,8 @@ void setup() {
 
 void loop() {
   led.handle();
+  //RGB val = led.GetCurrentValue();
+  //espserial.printf("R: %d, G: %d, B: %d \n", val.r, val.g, val.b);
   button.handle();
   int A = digitalRead(INKLEFT);
   int B = digitalRead(INKRIGHT);
@@ -139,7 +150,7 @@ void loop() {
     }
     else if(cfg.mode == WHITE)
     {
-      cfg.colortemperature -= 500;
+      cfg.colortemperature -= 250;
       cfg.configchanged = true;
       if(cfg.colortemperature < 1000)
       {
@@ -147,13 +158,13 @@ void loop() {
       }
       SetLEDToMode();
     }
-    else if(cfg.mode == RGB)
+    else if(cfg.mode == RGBHUE)
     {
-      cfg.color -= 1;
+      cfg.color -= 5;
       cfg.configchanged = true;
       if(cfg.color < 0)
       {
-        cfg.color = 11;
+        cfg.color = 355;
       }
       SetLEDToMode();
     }
@@ -180,19 +191,19 @@ void loop() {
     }
     else if(cfg.mode == WHITE)
     {
-      cfg.colortemperature += 500;
+      cfg.colortemperature += 250;
       cfg.configchanged = true;
-      if(cfg.colortemperature > 10000)
+      if(cfg.colortemperature > 6500)
       {
-        cfg.colortemperature = 10000;
+        cfg.colortemperature = 6500;
       }
       SetLEDToMode();
     }
-    else if(cfg.mode == RGB)
+    else if(cfg.mode == RGBHUE)
     {
-      cfg.color += 1;
+      cfg.color += 5;
       cfg.configchanged = true;
-      if(cfg.color > 11)
+      if(cfg.color > 355)
       {
         cfg.color = 0;
       }
@@ -214,7 +225,7 @@ void loop() {
     }  
     lastflashsave = millis();
   }
-  delay(1);
+  yield();
 }
 
 
@@ -358,6 +369,9 @@ void lp()
   }
   
 }
+
+
+
 void SetLEDToMode()
 {
   espserial.println("test");
@@ -369,13 +383,16 @@ void SetLEDToMode()
   switch (cfg.mode)
   {
   case WHITE:
-    led.FadeToValueAsync(KelvinRGB::KelvinToRGB(cfg.colortemperature), 250);
+    led.SetRGBValue(KelvinRGB::KelvinToRGB(cfg.colortemperature));
+    analogWrite(WHITELED, 1023*cfg.brightness);
     break;
-  case RGB:
-    led.FadeToValueAsync(ColorThemes::ColorCircle[cfg.color], 250);
+  case RGBHUE:
+    led.FadeToValueAsync(MultiLED::HSVtoRGB((HSV){cfg.color, 255, 255}), 100);
+    digitalWrite(WHITELED, LOW);
     break;
   case FADE:
-    led.StartRandomColorFadeFromTheme(ColorThemes::Rainbow,9000);
+    led.StartRandomColorFadeFromTheme(ColorThemes::Rainbow, 9000, linear);
+    digitalWrite(WHITELED, LOW);
     break;
 
   default: led.SetBlue();
