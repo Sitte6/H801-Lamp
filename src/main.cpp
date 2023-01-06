@@ -106,7 +106,7 @@ void setup() {
   digitalWrite(WHITELED, LOW);
 
   button.RegisterCallbacks(p,lp);
-  
+  button.handle();
   
   espserial.println("Started");
   //WiFi.mode(WIFI_STA);
@@ -117,7 +117,7 @@ void setup() {
   //  ESP.restart();
   //}
   WiFiStarter();
-
+  button.handle();
   espserial.println("WiFI Connected");
   
 }
@@ -126,8 +126,8 @@ void setup() {
 
 void loop() {
   led.handle();
-  RGB val = led.GetCurrentValue();
-  espserial.printf("R: %d, G: %d, B: %d \n", val.r, val.g, val.b);
+  //RGB val = led.GetCurrentValue();
+  //espserial.printf("R: %d, G: %d, B: %d \n", val.r, val.g, val.b);
   button.handle();
   int A = digitalRead(INKLEFT);
   int B = digitalRead(INKRIGHT);
@@ -246,7 +246,7 @@ void loop() {
     }  
     lastflashsave = millis();
   }
-  delay(10);
+  yield();
 }
 
 
