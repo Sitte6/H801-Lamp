@@ -106,7 +106,6 @@ void setup() {
   digitalWrite(WHITELED, LOW);
 
   button.RegisterCallbacks(p,lp);
-  button.handle();
   
   espserial.println("Started");
   //WiFi.mode(WIFI_STA);
@@ -117,7 +116,6 @@ void setup() {
   //  ESP.restart();
   //}
   WiFiStarter();
-  button.handle();
   espserial.println("WiFI Connected");
   
 }
